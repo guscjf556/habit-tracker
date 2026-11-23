@@ -1,48 +1,20 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>내 웹앱</title>
-</head>
-<body>
-  <!-- 여기에 기존 HTML 화면 내용 -->
-
-  <script>
     const API_URL = 'https://script.google.com/macros/s/AKfycbx3Zj9Pq5AWVRFBylXrIA187RjckZ2Q9t5WrZ5ONBLCX1SsJwRGqjZaxoFPNnjQTtgKHQ/exec';
 
-    // 예: 시트에서 데이터 가져오기 (GET)
-    async function loadData() {
-      try {
-        const res = await fetch(`${API_URL}?action=getData`);
-        const json = await res.json();
-        renderTable(json.data);
-      } catch (err) {
-        alert('에러: ' + err);
+    async function callServer(fnName, args, onSuccess) {
+      if (isGAS) {
+        google.script.run.withSuccessHandler(onSuccess)[fnName](...args);
+        return;
       }
-    }
-
-    // 예: 시트에 데이터 저장하기 (POST)
-    async function submitData(name, value) {
       try {
         const res = await fetch(API_URL, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'text/plain;charset=utf-8',
-          },
-          body: JSON.stringify({
-            action: 'saveData',
-            name: name,
-            value: value,
-          }),
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action: fnName, args: args }),
         });
         const json = await res.json();
-        if (json.status === 'ok') {
-          alert('저장 완료!');
-        }
+        onSuccess(json);
       } catch (err) {
-        alert('에러: ' + err);
+        console.error(err);
+        alert('서버 통신 중 오류가 발생했습니다: ' + err.message);
       }
     }
-  </script>
-</body>
-</html>
