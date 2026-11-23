@@ -109,6 +109,8 @@
     }
     .user-name { font-size: 0.95rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 6px; }
     .cat-avatar { width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0; border: 1px solid var(--border); background: #fff; }
+    .cat-avatar-sm { width: 18px; height: 18px; vertical-align: middle; }
+    .cat-avatar-xs { width: 14px; height: 14px; }
     .streak-pill {
       background: #fff7ed;
       color: #c2410c;
@@ -171,9 +173,6 @@
       margin-bottom: 10px;
       padding-left: 2px;
     }
-    .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; }
-    .dot-a { background: var(--userA); }
-    .dot-b { background: var(--userB); }
 
     .habit-list { display: flex; flex-direction: column; gap: 10px; }
     .habit-item {
@@ -239,7 +238,7 @@
     .cal-month { font-size: 1.05rem; font-weight: 800; }
     .cal-legend {
       display: flex;
-      gap: 12px;
+      gap: 14px;
       font-size: 0.78rem;
       color: var(--muted);
       margin-bottom: 10px;
@@ -274,15 +273,14 @@
     .cal-day.selected { border-color: var(--text); background: #e2e8f0; }
     .cal-num { font-size: 0.8rem; font-weight: 600; }
     .cal-dots { display: flex; flex-direction: column; gap: 2px; width: 100%; align-items: center; }
-    .cal-badge {
+    .cal-cat-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
       font-size: 0.65rem;
       font-weight: 700;
-      padding: 1px 5px;
-      border-radius: 999px;
-      color: #fff;
+      color: var(--text);
     }
-    .badge-a { background: var(--userA); }
-    .badge-b { background: var(--userB); }
 
     .cal-detail {
       margin-top: 12px;
@@ -471,8 +469,8 @@
         <button class="btn" onclick="changeMonth(1)">다음 ▶</button>
       </div>
       <div class="cal-legend">
-        <span><span class="dot dot-a"></span><span id="legendA">User A</span></span>
-        <span><span class="dot dot-b"></span><span id="legendB">User B</span></span>
+        <span style="display:inline-flex; align-items:center; gap:4px;"><span id="legendIconA"></span><span id="legendA">User A</span></span>
+        <span style="display:inline-flex; align-items:center; gap:4px;"><span id="legendIconB"></span><span id="legendB">User B</span></span>
       </div>
       <div class="cal-grid" id="calGrid"></div>
       <div class="cal-detail" id="calDetail" style="display:none;"></div>
@@ -595,9 +593,9 @@
       render(appData);
     }
 
-    function getCatAvatar(uid) {
+    function getCatAvatar(uid, extraClass = '') {
       if (uid === 'A') {
-        return `<svg class="cat-avatar" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg">
+        return `<svg class="cat-avatar ${extraClass}" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg">
           <rect width="36" height="36" rx="18" fill="#fef3c7"/>
           <path d="M8 14 L10 5 L16 10 Z" fill="#f59e0b"/>
           <path d="M28 14 L26 5 L20 10 Z" fill="#f59e0b"/>
@@ -608,7 +606,7 @@
           <polygon points="17,22 19,22 18,23.5" fill="#f43f5e"/>
         </svg>`;
       }
-      return `<svg class="cat-avatar" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg">
+      return `<svg class="cat-avatar ${extraClass}" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg">
         <rect width="36" height="36" rx="18" fill="#f1f5f9"/>
         <path d="M8 14 L10 5 L16 10 Z" fill="#e2e8f0"/>
         <path d="M28 14 L26 5 L20 10 Z" fill="#e2e8f0"/>
@@ -626,6 +624,8 @@
       if (!selectedDate) selectedDate = data.todayStr;
 
       document.getElementById('todayLabel').textContent = `📅 ${data.todayStr}`;
+      document.getElementById('legendIconA').innerHTML = getCatAvatar('A', 'cat-avatar-sm');
+      document.getElementById('legendIconB').innerHTML = getCatAvatar('B', 'cat-avatar-sm');
       document.getElementById('legendA').textContent = data.users.A;
       document.getElementById('legendB').textContent = data.users.B;
       const fineAmt = (data.finePerMiss !== undefined ? data.finePerMiss : 5000).toLocaleString();
@@ -732,8 +732,8 @@
           <div class="cal-day ${isToday ? 'today' : ''} ${isSel ? 'selected' : ''}" onclick="selectCalDate('${dateStr}')">
             <span class="cal-num">${day}</span>
             <div class="cal-dots">
-              ${countA > 0 ? `<span class="cal-badge badge-a">${countA}</span>` : ''}
-              ${countB > 0 ? `<span class="cal-badge badge-b">${countB}</span>` : ''}
+              ${countA > 0 ? `<span class="cal-cat-badge">${getCatAvatar('A', 'cat-avatar-xs')}<span>${countA}</span></span>` : ''}
+              ${countB > 0 ? `<span class="cal-cat-badge">${getCatAvatar('B', 'cat-avatar-xs')}<span>${countB}</span></span>` : ''}
             </div>
           </div>
         `;
@@ -760,7 +760,6 @@
 
       const sectionsHtml = ['A', 'B'].map(uid => {
         const uHabits = appData.habits[uid] || [];
-        const dotClass = uid === 'A' ? 'dot-a' : 'dot-b';
         const rows = uHabits.map(h => {
           const checked = !!(appData.logMap?.[uid]?.[h.id]?.[dateStr]);
           return `
@@ -773,10 +772,10 @@
           `;
         }).join('');
         return `
-          <div style="margin-top:10px;">
-            <span class="dot ${dotClass}"></span> <strong>${escapeHtml(appData.users[uid])}</strong>
-            ${rows || '<div style="color:var(--muted); font-size:0.8rem; margin-top:4px;">습관 없음</div>'}
+          <div style="margin-top:10px; display:flex; align-items:center; gap:6px;">
+            ${getCatAvatar(uid, 'cat-avatar-sm')} <strong>${escapeHtml(appData.users[uid])}</strong>
           </div>
+          ${rows || '<div style="color:var(--muted); font-size:0.8rem; margin-top:4px;">습관 없음</div>'}
         `;
       }).join('');
 
