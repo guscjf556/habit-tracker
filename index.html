@@ -1,4 +1,415 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>2인용 해빗 트래커</title>
+  <style>
+    :root {
+      --bg: #f1f5f9;
+      --card: #ffffff;
+      --text: #0f172a;
+      --muted: #64748b;
+      --primary: #4f46e5;
+      --primary-light: #eef2ff;
+      --success: #10b981;
+      --danger: #ef4444;
+      --danger-light: #fef2f2;
+      --border: #e2e8f0;
+      --userA: #3b82f6;
+      --userB: #ec4899;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans KR", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 14px;
+      padding-bottom: 40px;
+      line-height: 1.45;
+    }
+
+    .container { max-width: 540px; margin: 0 auto; }
+
+    /* 헤더 */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+      gap: 8px;
+    }
+    .title-area h1 { font-size: 1.25rem; font-weight: 800; display: flex; align-items: center; gap: 6px; }
+    .title-area p { font-size: 0.82rem; color: var(--muted); margin-top: 2px; }
+    .badge-local {
+      font-size: 0.7rem;
+      background: #fef3c7;
+      color: #92400e;
+      padding: 2px 7px;
+      border-radius: 999px;
+      font-weight: 700;
+    }
+
+    .btn {
+      padding: 9px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--text);
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.1s, background 0.15s;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn-primary { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .btn-danger { color: var(--danger); border-color: #fecaca; background: var(--danger-light); }
+
+    /* 뷰 전환 탭 */
+    .view-tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      background: #e2e8f0;
+      padding: 4px;
+      border-radius: 12px;
+      margin-bottom: 16px;
+    }
+    .tab-btn {
+      padding: 10px;
+      border: none;
+      border-radius: 9px;
+      background: transparent;
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .tab-btn.active {
+      background: var(--card);
+      color: var(--primary);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+
+    /* 상단 2인 요약 카드 */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .user-card {
+      background: var(--card);
+      border-radius: 14px;
+      padding: 12px;
+      border: 1px solid var(--border);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    }
+    .user-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      gap: 4px;
+    }
+    .user-name { font-size: 0.95rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 6px; }
+    .cat-avatar { width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0; border: 1px solid var(--border); background: #fff; }
+    .streak-pill {
+      background: #fff7ed;
+      color: #c2410c;
+      padding: 2px 6px;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .metric-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      font-size: 0.82rem;
+      margin-top: 4px;
+    }
+    .metric-label { color: var(--muted); }
+    .metric-val { font-weight: 700; font-size: 0.95rem; }
+    .fine-text { color: var(--danger); }
+
+    /* 사용자별 습관 섹션 */
+    .user-section {
+      margin-bottom: 18px;
+    }
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 1rem;
+      font-weight: 800;
+      margin-bottom: 10px;
+      padding-left: 2px;
+    }
+    .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; }
+    .dot-a { background: var(--userA); }
+    .dot-b { background: var(--userB); }
+
+    .habit-list { display: flex; flex-direction: column; gap: 10px; }
+    .habit-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--card);
+      border-radius: 14px;
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .habit-item:active { background: #f8fafc; }
+    .habit-left { display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .check-circle {
+      width: 38px;
+      height: 38px;
+      border-radius: 11px;
+      border: 2px solid #cbd5e1;
+      background: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .check-circle.checked {
+      background: var(--success);
+      border-color: var(--success);
+      color: #fff;
+    }
+    .h-title { font-size: 1rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .h-sub { font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
+    .habit-rule {
+      font-size: 0.75rem;
+      color: var(--primary);
+      background: var(--primary-light);
+      padding: 4px 9px;
+      border-radius: 999px;
+      font-weight: 700;
+      flex-shrink: 0;
+      margin-left: 8px;
+    }
+
+    /* 달력 뷰 */
+    .calendar-card {
+      background: var(--card);
+      border-radius: 14px;
+      padding: 14px;
+      border: 1px solid var(--border);
+      display: none;
+    }
+    .calendar-card.active { display: block; }
+    .cal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .cal-month { font-size: 1.05rem; font-weight: 800; }
+    .cal-legend {
+      display: flex;
+      gap: 12px;
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-bottom: 10px;
+      justify-content: center;
+    }
+    .cal-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+      text-align: center;
+    }
+    .cal-dow {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--muted);
+      padding-bottom: 6px;
+    }
+    .cal-day {
+      min-height: 54px;
+      border-radius: 10px;
+      background: #f8fafc;
+      padding: 5px 2px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      border: 1px solid transparent;
+    }
+    .cal-day.empty { background: transparent; cursor: default; }
+    .cal-day.today { border-color: var(--primary); background: var(--primary-light); }
+    .cal-day.selected { border-color: var(--text); background: #e2e8f0; }
+    .cal-num { font-size: 0.8rem; font-weight: 600; }
+    .cal-dots { display: flex; flex-direction: column; gap: 2px; width: 100%; align-items: center; }
+    .cal-badge {
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 1px 5px;
+      border-radius: 999px;
+      color: #fff;
+    }
+    .badge-a { background: var(--userA); }
+    .badge-b { background: var(--userB); }
+
+    .cal-detail {
+      margin-top: 12px;
+      padding: 12px;
+      background: #f8fafc;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      border: 1px solid var(--border);
+    }
+
+    .notice {
+      margin-top: 16px;
+      font-size: 0.78rem;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    /* 모달 */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.5);
+      display: none;
+      align-items: flex-end;
+      justify-content: center;
+      z-index: 100;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal {
+      background: var(--card);
+      border-radius: 18px 18px 0 0;
+      width: 100%;
+      max-width: 540px;
+      padding: 20px;
+      max-height: 85vh;
+      overflow-y: auto;
+    }
+    .modal h2 { font-size: 1.15rem; margin-bottom: 14px; }
+    .form-group { margin-bottom: 14px; }
+    .form-group label { display: block; font-size: 0.82rem; font-weight: 700; margin-bottom: 6px; color: var(--muted); }
+    .input-row { display: flex; gap: 6px; margin-bottom: 8px; align-items: center; }
+    input[type="text"], select {
+      padding: 10px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.9rem;
+      width: 100%;
+    }
+    select { width: auto; min-width: 96px; }
+    .modal-actions { display: flex; gap: 8px; margin-top: 16px; }
+    .modal-actions .btn { flex: 1; padding: 12px; }
+
+    .modal-user-tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="title-area">
+        <h1>🔥 해빗 트래커 <span id="localBadge" class="badge-local" style="display:none;">로컬</span></h1>
+        <p id="todayLabel">불러오는 중...</p>
+      </div>
+      <button class="btn" onclick="openSettings()">⚙️ 설정</button>
+    </header>
+
+    <div class="summary-grid" id="summaryGrid"></div>
+
+    <!-- 뷰 전환 버튼 -->
+    <div class="view-tabs">
+      <button class="tab-btn active" id="tabToday" onclick="switchView('today')">📋 오늘 체크</button>
+      <button class="tab-btn" id="tabCalendar" onclick="switchView('calendar')">📅 달력 뷰</button>
+    </div>
+
+    <!-- 오늘 체크 뷰 (사용자별 섹션) -->
+    <div id="todayView"></div>
+
+    <!-- 달력 뷰 -->
+    <div id="calendarView" class="calendar-card">
+      <div class="cal-header">
+        <button class="btn" onclick="changeMonth(-1)">◀ 이전</button>
+        <div class="cal-month" id="calMonthLabel">2026년 11월</div>
+        <button class="btn" onclick="changeMonth(1)">다음 ▶</button>
+      </div>
+      <div class="cal-legend">
+        <span><span class="dot dot-a"></span><span id="legendA">User A</span></span>
+        <span><span class="dot dot-b"></span><span id="legendB">User B</span></span>
+      </div>
+      <div class="cal-grid" id="calGrid"></div>
+      <div class="cal-detail" id="calDetail" style="display:none;"></div>
+    </div>
+
+    <p class="notice" id="fineNotice">
+      💡 주간 목표(월~일) 미달성 시 부족한 1회당 <strong>5,000원</strong> 벌금 부과
+    </p>
+  </div>
+
+  <!-- 설정 모달 -->
+  <div class="modal-backdrop" id="settingsModal">
+    <div class="modal">
+      <h2>⚙️ 습관 및 참여자 설정</h2>
+      <div class="form-group">
+        <label>참여자 이름</label>
+        <div class="input-row">
+          <input type="text" id="inputUserA" placeholder="사용자 A" />
+          <input type="text" id="inputUserB" placeholder="사용자 B" />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>미달성 1회당 벌금 (원)</label>
+        <input type="number" id="inputFine" min="0" step="500" placeholder="5000" style="padding:10px; border:1px solid var(--border); border-radius:8px; font-size:0.9rem; width:100%;" />
+      </div>
+
+      <div class="form-group">
+        <label>누구의 습관을 수정할까요?</label>
+        <div class="modal-user-tabs">
+          <button class="btn btn-primary" id="editTabA" onclick="switchEditUser('A')">User A 습관</button>
+          <button class="btn" id="editTabB" onclick="switchEditUser('B')">User B 습관</button>
+        </div>
+        <div id="habitEditList"></div>
+        <button class="btn" style="margin-top:6px; width:100%;" onclick="addHabitRow()">+ 새 습관 추가</button>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn" onclick="closeSettings()">취소</button>
+        <button class="btn btn-primary" onclick="saveSettingsForm()">저장하기</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
     const API_URL = 'https://script.google.com/macros/s/AKfycbx3Zj9Pq5AWVRFBylXrIA187RjckZ2Q9t5WrZ5ONBLCX1SsJwRGqjZaxoFPNnjQTtgKHQ/exec';
+
+    let appData = null;
+    let currentView = 'today';
+    let calYear = new Date().getFullYear();
+    let calMonth = new Date().getMonth();
+    let selectedCalDate = null;
+
+    // 설정 모달용 임시 상태
+    let editHabits = { A: [], B: [] };
+    let editingUser = 'A';
+
+    const isGAS = typeof google !== 'undefined' && google.script && google.script.run;
 
     async function callServer(fnName, args, onSuccess) {
       if (isGAS) {
@@ -18,3 +429,271 @@
         alert('서버 통신 중 오류가 발생했습니다: ' + err.message);
       }
     }
+
+    function switchView(view) {
+      currentView = view;
+      document.getElementById('tabToday').classList.toggle('active', view === 'today');
+      document.getElementById('tabCalendar').classList.toggle('active', view === 'calendar');
+      document.getElementById('todayView').style.display = view === 'today' ? 'block' : 'none';
+      document.getElementById('calendarView').classList.toggle('active', view === 'calendar');
+      if (view === 'calendar') renderCalendar();
+    }
+
+    function getCatAvatar(uid) {
+      if (uid === 'A') {
+        return `<svg class="cat-avatar" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg">
+          <rect width="36" height="36" rx="18" fill="#fef3c7"/>
+          <path d="M8 14 L10 5 L16 10 Z" fill="#f59e0b"/>
+          <path d="M28 14 L26 5 L20 10 Z" fill="#f59e0b"/>
+          <circle cx="18" cy="20" r="10" fill="#fbbf24"/>
+          <path d="M16 10.5 L18 14 L20 10.5" stroke="#d97706" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          <circle cx="14.5" cy="19" r="1.4" fill="#1e293b"/>
+          <circle cx="21.5" cy="19" r="1.4" fill="#1e293b"/>
+          <polygon points="17,22 19,22 18,23.5" fill="#f43f5e"/>
+        </svg>`;
+      }
+      return `<svg class="cat-avatar" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg">
+        <rect width="36" height="36" rx="18" fill="#f1f5f9"/>
+        <path d="M8 14 L10 5 L16 10 Z" fill="#e2e8f0"/>
+        <path d="M28 14 L26 5 L20 10 Z" fill="#e2e8f0"/>
+        <path d="M9.5 13 L10.8 7.5 L14.5 10.5 Z" fill="#fbcfe8"/>
+        <path d="M26.5 13 L25.2 7.5 L21.5 10.5 Z" fill="#fbcfe8"/>
+        <circle cx="18" cy="20" r="10" fill="#ffffff" stroke="#cbd5e1" stroke-width="1"/>
+        <circle cx="14.5" cy="19" r="1.4" fill="#1e293b"/>
+        <circle cx="21.5" cy="19" r="1.4" fill="#1e293b"/>
+        <polygon points="17,22 19,22 18,23.5" fill="#fb7185"/>
+      </svg>`;
+    }
+
+    function render(data) {
+      appData = data;
+      document.getElementById('todayLabel').textContent = `📅 ${data.todayStr}`;
+      document.getElementById('legendA').textContent = data.users.A;
+      document.getElementById('legendB').textContent = data.users.B;
+      const fineAmt = (data.finePerMiss !== undefined ? data.finePerMiss : 5000).toLocaleString();
+      document.getElementById('fineNotice').innerHTML = `💡 주간 목표(월~일) 미달성 시 부족한 1회당 <strong>${fineAmt}원</strong> 벌금 부과`;
+
+      document.getElementById('summaryGrid').innerHTML = ['A', 'B'].map(uid => {
+        const st = data.stats[uid];
+        return `
+          <div class="user-card">
+            <div class="user-card-header">
+              <span class="user-name">${getCatAvatar(uid)} ${escapeHtml(data.users[uid])}</span>
+              <span class="streak-pill">🔥 ${st.maxDailyStreak}일</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-label">달성률</span>
+              <span class="metric-val">${st.achievementRate}%</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-label">벌금</span>
+              <span class="metric-val fine-text">${st.totalFine.toLocaleString()}원</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      document.getElementById('todayView').innerHTML = ['A', 'B'].map(uid => {
+        const uHabits = data.habits[uid] || [];
+        const itemsHtml = uHabits.length === 0
+          ? `<div style="color:var(--muted); font-size:0.85rem; padding:10px;">등록된 습관이 없습니다. ⚙️ 설정에서 추가해 보세요.</div>`
+          : uHabits.map(h => {
+              const hs = data.stats[uid].habitStats[h.id] || {};
+              const checked = !!hs.todayChecked;
+              return `
+                <div class="habit-item" onclick="onToggle('${uid}', '${h.id}', '${data.todayStr}')">
+                  <div class="habit-left">
+                    <div class="check-circle ${checked ? 'checked' : ''}">${checked ? '✓' : ''}</div>
+                    <div style="min-width:0;">
+                      <div class="h-title">${escapeHtml(h.title)}</div>
+                      <div class="h-sub">${hs.streak || 0}일 연속 · 이번 주 ${hs.thisWeekCount || 0}/${h.weeklyTarget}회</div>
+                    </div>
+                  </div>
+                  <span class="habit-rule">주 ${h.weeklyTarget}회</span>
+                </div>
+              `;
+            }).join('');
+
+        return `
+          <div class="user-section">
+            <div class="section-header">
+              ${getCatAvatar(uid)}
+              <span>${escapeHtml(data.users[uid])}의 습관</span>
+            </div>
+            <div class="habit-list">${itemsHtml}</div>
+          </div>
+        `;
+      }).join('');
+
+      if (currentView === 'calendar') renderCalendar();
+    }
+
+    function onToggle(uid, habitId, dateStr) {
+      callServer('toggleCheck', [uid, habitId, dateStr], render);
+    }
+
+    function changeMonth(delta) {
+      calMonth += delta;
+      if (calMonth < 0) { calMonth = 11; calYear--; }
+      if (calMonth > 11) { calMonth = 0; calYear++; }
+      selectedCalDate = null;
+      document.getElementById('calDetail').style.display = 'none';
+      renderCalendar();
+    }
+
+    function renderCalendar() {
+      if (!appData) return;
+      document.getElementById('calMonthLabel').textContent = `${calYear}년 ${calMonth + 1}월`;
+      const grid = document.getElementById('calGrid');
+      const dows = ['월', '화', '수', '목', '금', '토', '일'];
+      let html = dows.map(d => `<div class="cal-dow">${d}</div>`).join('');
+
+      const firstDay = new Date(calYear, calMonth, 1).getDay();
+      const startOffset = firstDay === 0 ? 6 : firstDay - 1;
+      const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+
+      for (let i = 0; i < startOffset; i++) {
+        html += `<div class="cal-day empty"></div>`;
+      }
+
+      for (let day = 1; day <= daysInMonth; day++) {
+        const dateStr = `${calYear}-${String(calMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        const countA = countCompletedOn('A', dateStr);
+        const countB = countCompletedOn('B', dateStr);
+        const isToday = dateStr === appData.todayStr;
+        const isSel = dateStr === selectedCalDate;
+
+        html += `
+          <div class="cal-day ${isToday ? 'today' : ''} ${isSel ? 'selected' : ''}" onclick="selectCalDate('${dateStr}')">
+            <span class="cal-num">${day}</span>
+            <div class="cal-dots">
+              ${countA > 0 ? `<span class="cal-badge badge-a">${countA}</span>` : ''}
+              ${countB > 0 ? `<span class="cal-badge badge-b">${countB}</span>` : ''}
+            </div>
+          </div>
+        `;
+      }
+      grid.innerHTML = html;
+    }
+
+    function countCompletedOn(uid, dateStr) {
+      const userLogMap = appData.logMap?.[uid];
+      const uHabits = appData.habits[uid] || [];
+      if (!userLogMap) return 0;
+      let c = 0;
+      uHabits.forEach(h => {
+        if (userLogMap[h.id] && userLogMap[h.id][dateStr]) c++;
+      });
+      return c;
+    }
+
+    function selectCalDate(dateStr) {
+      selectedCalDate = dateStr;
+      renderCalendar();
+      const detail = document.getElementById('calDetail');
+      const listA = (appData.habits.A || []).filter(h => appData.logMap?.A?.[h.id]?.[dateStr]).map(h => h.title);
+      const listB = (appData.habits.B || []).filter(h => appData.logMap?.B?.[h.id]?.[dateStr]).map(h => h.title);
+
+      detail.style.display = 'block';
+      detail.innerHTML = `
+        <strong>📅 ${dateStr} 완료 내역</strong><br/>
+        <div style="margin-top:6px;">
+          <span class="dot dot-a"></span><strong>${escapeHtml(appData.users.A)}</strong>: ${listA.length ? escapeHtml(listA.join(', ')) : '없음'}
+        </div>
+        <div style="margin-top:4px;">
+          <span class="dot dot-b"></span><strong>${escapeHtml(appData.users.B)}</strong>: ${listB.length ? escapeHtml(listB.join(', ')) : '없음'}
+        </div>
+      `;
+    }
+
+    function openSettings() {
+      document.getElementById('inputUserA').value = appData.users.A;
+      document.getElementById('inputUserB').value = appData.users.B;
+      document.getElementById('inputFine').value = appData.finePerMiss !== undefined ? appData.finePerMiss : 5000;
+      editHabits = {
+        A: JSON.parse(JSON.stringify(appData.habits.A || [])),
+        B: JSON.parse(JSON.stringify(appData.habits.B || []))
+      };
+      editingUser = 'A';
+      updateEditTabs();
+      renderEditList();
+      document.getElementById('settingsModal').classList.add('open');
+    }
+
+    function closeSettings() {
+      document.getElementById('settingsModal').classList.remove('open');
+    }
+
+    function syncCurrentEditList() {
+      const rows = document.querySelectorAll('#habitEditList .input-row');
+      const arr = [];
+      rows.forEach(r => {
+        const title = r.querySelector('.habit-title-input').value.trim();
+        const weeklyTarget = Number(r.querySelector('.habit-target-select').value);
+        if (title) arr.push({ id: r.dataset.id, title, weeklyTarget });
+      });
+      editHabits[editingUser] = arr;
+    }
+
+    function switchEditUser(uid) {
+      syncCurrentEditList();
+      editingUser = uid;
+      updateEditTabs();
+      renderEditList();
+    }
+
+    function updateEditTabs() {
+      const nameA = document.getElementById('inputUserA').value.trim() || '미주';
+      const nameB = document.getElementById('inputUserB').value.trim() || '구리';
+      const tabA = document.getElementById('editTabA');
+      const tabB = document.getElementById('editTabB');
+      tabA.textContent = `${nameA} 습관`;
+      tabB.textContent = `${nameB} 습관`;
+      tabA.className = editingUser === 'A' ? 'btn btn-primary' : 'btn';
+      tabB.className = editingUser === 'B' ? 'btn btn-primary' : 'btn';
+    }
+
+    function renderEditList() {
+      const list = document.getElementById('habitEditList');
+      list.innerHTML = '';
+      (editHabits[editingUser] || []).forEach(h => addHabitRow(h));
+    }
+
+    function addHabitRow(habit = { id: 'h' + Date.now(), title: '', weeklyTarget: 7 }) {
+      const list = document.getElementById('habitEditList');
+      const row = document.createElement('div');
+      row.className = 'input-row';
+      row.dataset.id = habit.id;
+      const options = [1,2,3,4,5,6,7].map(n =>
+        `<option value="${n}" ${Number(habit.weeklyTarget) === n ? 'selected' : ''}>주 ${n}회</option>`
+      ).join('');
+      row.innerHTML = `
+        <input type="text" class="habit-title-input" value="${escapeHtml(habit.title)}" placeholder="습관 이름" />
+        <select class="habit-target-select">${options}</select>
+        <button class="btn btn-danger" onclick="this.parentElement.remove()">삭제</button>
+      `;
+      list.appendChild(row);
+    }
+
+    function saveSettingsForm() {
+      syncCurrentEditList();
+      const users = {
+        A: document.getElementById('inputUserA').value.trim() || '미주',
+        B: document.getElementById('inputUserB').value.trim() || '구리'
+      };
+      const fineVal = Number(document.getElementById('inputFine').value);
+      const finePerMiss = !isNaN(fineVal) && fineVal >= 0 ? fineVal : 5000;
+      callServer('saveSettings', [users, editHabits, finePerMiss], (res) => {
+        closeSettings();
+        render(res);
+      });
+    }
+
+    function escapeHtml(str) {
+      return String(str).replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
+    }
+
+    callServer('getDashboardData', [], render);
+  </script>
+</body>
+</html>
