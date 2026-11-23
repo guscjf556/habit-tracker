@@ -42,14 +42,6 @@
     }
     .title-area h1 { font-size: 1.25rem; font-weight: 800; display: flex; align-items: center; gap: 6px; }
     .title-area p { font-size: 0.82rem; color: var(--muted); margin-top: 2px; }
-    .badge-local {
-      font-size: 0.7rem;
-      background: #fef3c7;
-      color: #92400e;
-      padding: 2px 7px;
-      border-radius: 999px;
-      font-weight: 700;
-    }
 
     .btn {
       padding: 9px 12px;
@@ -63,6 +55,7 @@
       transition: transform 0.1s, background 0.15s;
     }
     .btn:active { transform: scale(0.97); }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
     .btn-primary { background: var(--primary); color: #fff; border-color: var(--primary); }
     .btn-danger { color: var(--danger); border-color: #fecaca; background: var(--danger-light); }
 
@@ -135,6 +128,35 @@
     .metric-label { color: var(--muted); }
     .metric-val { font-weight: 700; font-size: 0.95rem; }
     .fine-text { color: var(--danger); }
+
+    /* 날짜 이동 바 */
+    .date-nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 8px 10px;
+      margin-bottom: 14px;
+    }
+    .date-nav-center {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 800;
+      font-size: 0.95rem;
+    }
+    .btn-today-pill {
+      font-size: 0.72rem;
+      padding: 3px 8px;
+      border-radius: 999px;
+      border: 1px solid var(--primary);
+      background: var(--primary-light);
+      color: var(--primary);
+      font-weight: 700;
+      cursor: pointer;
+    }
 
     /* 사용자별 습관 섹션 */
     .user-section {
@@ -271,6 +293,38 @@
       border: 1px solid var(--border);
     }
 
+    /* 달력 상세창 내 체크리스트 */
+    .cal-habit-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 10px;
+      margin-top: 6px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      cursor: pointer;
+    }
+    .cal-habit-row:active { background: #f1f5f9; }
+    .cal-habit-left { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; font-weight: 600; }
+    .cal-check-mini {
+      width: 22px;
+      height: 22px;
+      border-radius: 6px;
+      border: 2px solid #cbd5e1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8rem;
+      font-weight: 700;
+      background: #fff;
+    }
+    .cal-check-mini.checked {
+      background: var(--success);
+      border-color: var(--success);
+      color: #fff;
+    }
+
     .notice {
       margin-top: 16px;
       font-size: 0.78rem;
@@ -319,7 +373,8 @@
       gap: 6px;
       margin-bottom: 12px;
     }
-        /* 로딩 오버레이 */
+
+    /* 로딩 오버레이 */
     .loading-overlay {
       position: fixed;
       inset: 0;
@@ -369,7 +424,7 @@
   </style>
 </head>
 <body>
-    <div id="loadingOverlay" class="loading-overlay">
+  <div id="loadingOverlay" class="loading-overlay">
     <div class="loading-box">
       <div class="loading-text" id="loadingText">데이터를 불러오고 있습니다.</div>
       <div class="loading-bar-track">
@@ -377,10 +432,11 @@
       </div>
     </div>
   </div>
+
   <div class="container">
     <header>
       <div class="title-area">
-        <h1>🔥 해빗 트래커 <span id="localBadge" class="badge-local" style="display:none;">로컬</span></h1>
+        <h1>🔥 해빗 트래커</h1>
         <p id="todayLabel">불러오는 중...</p>
       </div>
       <button class="btn" onclick="openSettings()">⚙️ 설정</button>
@@ -394,8 +450,18 @@
       <button class="tab-btn" id="tabCalendar" onclick="switchView('calendar')">📅 달력 뷰</button>
     </div>
 
-    <!-- 오늘 체크 뷰 (사용자별 섹션) -->
-    <div id="todayView"></div>
+    <!-- 오늘 체크 뷰 (날짜 이동 + 사용자별 섹션) -->
+    <div id="todayViewWrapper">
+      <div class="date-nav">
+        <button class="btn" onclick="changeSelectedDate(-1)">◀ 이전</button>
+        <div class="date-nav-center">
+          <span id="selectedDateLabel">불러오는 중...</span>
+          <button class="btn-today-pill" id="btnGoToday" onclick="resetToToday()" style="display:none;">오늘로</button>
+        </div>
+        <button class="btn" id="btnNextDate" onclick="changeSelectedDate(1)">다음 ▶</button>
+      </div>
+      <div id="todayView"></div>
+    </div>
 
     <!-- 달력 뷰 -->
     <div id="calendarView" class="calendar-card">
@@ -456,17 +522,17 @@
 
     let appData = null;
     let currentView = 'today';
+    let selectedDate = null;
     let calYear = new Date().getFullYear();
     let calMonth = new Date().getMonth();
     let selectedCalDate = null;
 
-    // 설정 모달용 임시 상태
     let editHabits = { A: [], B: [] };
     let editingUser = 'A';
 
     const isGAS = typeof google !== 'undefined' && google.script && google.script.run;
 
-         function showLoading(msg = '데이터를 불러오고 있습니다.') {
+    function showLoading(msg = '데이터를 불러오고 있습니다.') {
       document.getElementById('loadingText').textContent = msg;
       document.getElementById('loadingOverlay').classList.add('show');
     }
@@ -508,9 +574,25 @@
       currentView = view;
       document.getElementById('tabToday').classList.toggle('active', view === 'today');
       document.getElementById('tabCalendar').classList.toggle('active', view === 'calendar');
-      document.getElementById('todayView').style.display = view === 'today' ? 'block' : 'none';
+      document.getElementById('todayViewWrapper').style.display = view === 'today' ? 'block' : 'none';
       document.getElementById('calendarView').classList.toggle('active', view === 'calendar');
       if (view === 'calendar') renderCalendar();
+    }
+
+    function changeSelectedDate(delta) {
+      if (!appData) return;
+      const d = new Date((selectedDate || appData.todayStr) + 'T00:00:00');
+      d.setDate(d.getDate() + delta);
+      const nextStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      if (nextStr > appData.todayStr) return;
+      selectedDate = nextStr;
+      render(appData);
+    }
+
+    function resetToToday() {
+      if (!appData) return;
+      selectedDate = appData.todayStr;
+      render(appData);
     }
 
     function getCatAvatar(uid) {
@@ -541,11 +623,17 @@
 
     function render(data) {
       appData = data;
+      if (!selectedDate) selectedDate = data.todayStr;
+
       document.getElementById('todayLabel').textContent = `📅 ${data.todayStr}`;
       document.getElementById('legendA').textContent = data.users.A;
       document.getElementById('legendB').textContent = data.users.B;
       const fineAmt = (data.finePerMiss !== undefined ? data.finePerMiss : 5000).toLocaleString();
       document.getElementById('fineNotice').innerHTML = `💡 주간 목표(월~일) 미달성 시 부족한 1회당 <strong>${fineAmt}원</strong> 벌금 부과`;
+
+      document.getElementById('selectedDateLabel').textContent = selectedDate === data.todayStr ? `오늘 (${selectedDate})` : selectedDate;
+      document.getElementById('btnGoToday').style.display = selectedDate === data.todayStr ? 'none' : 'inline-block';
+      document.getElementById('btnNextDate').disabled = selectedDate >= data.todayStr;
 
       document.getElementById('summaryGrid').innerHTML = ['A', 'B'].map(uid => {
         const st = data.stats[uid];
@@ -573,9 +661,9 @@
           ? `<div style="color:var(--muted); font-size:0.85rem; padding:10px;">등록된 습관이 없습니다. ⚙️ 설정에서 추가해 보세요.</div>`
           : uHabits.map(h => {
               const hs = data.stats[uid].habitStats[h.id] || {};
-              const checked = !!hs.todayChecked;
+              const checked = !!(data.logMap?.[uid]?.[h.id]?.[selectedDate]);
               return `
-                <div class="habit-item" onclick="onToggle('${uid}', '${h.id}', '${data.todayStr}')">
+                <div class="habit-item" onclick="onToggle('${uid}', '${h.id}', '${selectedDate}')">
                   <div class="habit-left">
                     <div class="check-circle ${checked ? 'checked' : ''}">${checked ? '✓' : ''}</div>
                     <div style="min-width:0;">
@@ -599,7 +687,10 @@
         `;
       }).join('');
 
-      if (currentView === 'calendar') renderCalendar();
+      if (currentView === 'calendar') {
+        renderCalendar();
+        if (selectedCalDate) selectCalDate(selectedCalDate);
+      }
     }
 
     function onToggle(uid, habitId, dateStr) {
@@ -665,19 +756,31 @@
       selectedCalDate = dateStr;
       renderCalendar();
       const detail = document.getElementById('calDetail');
-      const listA = (appData.habits.A || []).filter(h => appData.logMap?.A?.[h.id]?.[dateStr]).map(h => h.title);
-      const listB = (appData.habits.B || []).filter(h => appData.logMap?.B?.[h.id]?.[dateStr]).map(h => h.title);
-
       detail.style.display = 'block';
-      detail.innerHTML = `
-        <strong>📅 ${dateStr} 완료 내역</strong><br/>
-        <div style="margin-top:6px;">
-          <span class="dot dot-a"></span><strong>${escapeHtml(appData.users.A)}</strong>: ${listA.length ? escapeHtml(listA.join(', ')) : '없음'}
-        </div>
-        <div style="margin-top:4px;">
-          <span class="dot dot-b"></span><strong>${escapeHtml(appData.users.B)}</strong>: ${listB.length ? escapeHtml(listB.join(', ')) : '없음'}
-        </div>
-      `;
+
+      const sectionsHtml = ['A', 'B'].map(uid => {
+        const uHabits = appData.habits[uid] || [];
+        const dotClass = uid === 'A' ? 'dot-a' : 'dot-b';
+        const rows = uHabits.map(h => {
+          const checked = !!(appData.logMap?.[uid]?.[h.id]?.[dateStr]);
+          return `
+            <div class="cal-habit-row" onclick="onToggle('${uid}', '${h.id}', '${dateStr}')">
+              <div class="cal-habit-left">
+                <div class="cal-check-mini ${checked ? 'checked' : ''}">${checked ? '✓' : ''}</div>
+                <span>${escapeHtml(h.title)}</span>
+              </div>
+            </div>
+          `;
+        }).join('');
+        return `
+          <div style="margin-top:10px;">
+            <span class="dot ${dotClass}"></span> <strong>${escapeHtml(appData.users[uid])}</strong>
+            ${rows || '<div style="color:var(--muted); font-size:0.8rem; margin-top:4px;">습관 없음</div>'}
+          </div>
+        `;
+      }).join('');
+
+      detail.innerHTML = `<strong>📅 ${dateStr} 기록 수정</strong>${sectionsHtml}`;
     }
 
     function openSettings() {
