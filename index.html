@@ -397,7 +397,7 @@
   </div>
 
   <script>
-    const API_URL = 'https://script.google.com/macros/s/AKfycbw6BHA46-ZIA06IaPqTBArJ468IokZlTGYqHdf4mdJ9xeRTjRWKBtw1z-ymi9KEtn_rhQ/exec';
+    const API_URL = 'https://script.google.com/macros/s/AKfycbzL6AudF9BD6kDWme9De5Wrc3JHT25LoJKHpCG9JRhHbmdw1974MeVsxDjgriN9_ckfHA/exec';
 
     let appData = null;
     let currentView = 'today';
@@ -411,17 +411,17 @@
 
     const isGAS = typeof google !== 'undefined' && google.script && google.script.run;
 
-    async function callServer(fnName, args, onSuccess) {
+     async function callServer(fnName, args, onSuccess) {
       if (isGAS) {
         google.script.run.withSuccessHandler(onSuccess)[fnName](...args);
         return;
       }
       try {
-        const res = await fetch(API_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({ action: fnName, args: args }),
+        const params = new URLSearchParams({
+          action: fnName,
+          args: JSON.stringify(args || []),
         });
+        const res = await fetch(`${API_URL}?${params.toString()}`);
         const json = await res.json();
         onSuccess(json);
       } catch (err) {
