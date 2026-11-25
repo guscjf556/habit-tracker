@@ -323,6 +323,53 @@
       color: #fff;
     }
 
+    /* 한 줄 기록 */
+    .note-box {
+      margin-top: 8px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 12px;
+    }
+    .note-display {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.85rem;
+    }
+    .note-text {
+      color: var(--text);
+      word-break: break-word;
+      flex: 1;
+    }
+    .note-edit-row {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+    .note-input {
+      flex: 1;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.85rem;
+    }
+    .btn-sm {
+      padding: 6px 10px;
+      font-size: 0.78rem;
+      border-radius: 8px;
+    }
+    .cal-note-view {
+      margin-top: 6px;
+      padding: 7px 10px;
+      background: #ffffff;
+      border-left: 3px solid var(--primary);
+      border-radius: 6px;
+      font-size: 0.82rem;
+      color: var(--text);
+    }
+
     .notice {
       margin-top: 16px;
       font-size: 0.78rem;
@@ -683,6 +730,9 @@
               <span>${escapeHtml(data.users[uid])}의 습관</span>
             </div>
             <div class="habit-list">${itemsHtml}</div>
+            <div class="note-box" id="noteBox_${uid}">
+              ${renderNoteHtml(uid, selectedDate, data.notes?.[uid]?.[selectedDate] || '', false)}
+            </div>
           </div>
         `;
       }).join('');
@@ -695,6 +745,37 @@
 
     function onToggle(uid, habitId, dateStr) {
       callServer('toggleCheck', [uid, habitId, dateStr], render);
+    }
+
+    function renderNoteHtml(uid, dateStr, noteText, isEditing) {
+      if (noteText && !isEditing) {
+        return `
+          <div class="note-display">
+            <span class="note-text">📝 ${escapeHtml(noteText)}</span>
+            <button class="btn btn-sm" onclick="editNote('${uid}', '${dateStr}')">수정</button>
+          </div>
+        `;
+      }
+      return `
+        <div class="note-edit-row">
+          <input type="text" class="note-input" id="noteInput_${uid}" value="${escapeHtml(noteText)}" placeholder="${dateStr} 한 줄 기록을 남겨보세요" />
+          <button class="btn btn-primary btn-sm" onclick="saveUserNote('${uid}', '${dateStr}')">저장</button>
+        </div>
+      `;
+    }
+
+    function editNote(uid, dateStr) {
+      const currentNote = appData.notes?.[uid]?.[dateStr] || '';
+      const box = document.getElementById(`noteBox_${uid}`);
+      box.innerHTML = renderNoteHtml(uid, dateStr, currentNote, true);
+      const input = document.getElementById(`noteInput_${uid}`);
+      if (input) input.focus();
+    }
+
+    function saveUserNote(uid, dateStr) {
+      const input = document.getElementById(`noteInput_${uid}`);
+      const noteText = input ? input.value.trim() : '';
+      callServer('saveNote', [uid, dateStr, noteText], render);
     }
 
     function changeMonth(delta) {
@@ -771,11 +852,16 @@
             </div>
           `;
         }).join('');
+        const noteText = appData.notes?.[uid]?.[dateStr] || '';
+        const noteHtml = noteText
+          ? `<div class="cal-note-view">💬 ${escapeHtml(noteText)}</div>`
+          : '';
         return `
           <div style="margin-top:10px; display:flex; align-items:center; gap:6px;">
             ${getCatAvatar(uid, 'cat-avatar-sm')} <strong>${escapeHtml(appData.users[uid])}</strong>
           </div>
           ${rows || '<div style="color:var(--muted); font-size:0.8rem; margin-top:4px;">습관 없음</div>'}
+          ${noteHtml}
         `;
       }).join('');
 
